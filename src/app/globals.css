@@ -1,0 +1,272 @@
+@import "tailwindcss";
+
+/* Token'lar DESIGN.md ile kilitli. Değiştirmeden önce orayı güncelle. */
+:root {
+  --deck: #0b0c0e;
+  --board: #15171b;
+  --cell: #1c1f25;
+  --cell-lit: #23272f;
+  --seam: #08090a;
+  --rule: #2b2f37;
+  --rule-soft: #21252b;
+  --char: #efe7d6;
+  --char-2: #9b978a;
+  --char-3: #7a766c;
+  --amber: #e9a33a;
+  --amber-deep: #b8791c;
+  --amber-wash: #2a2115;
+  --go: #85ac5e;
+  --halt: #c8543a;
+}
+
+@theme inline {
+  --color-deck: var(--deck);
+  --color-board: var(--board);
+  --color-cell: var(--cell);
+  --color-cell-lit: var(--cell-lit);
+  --color-seam: var(--seam);
+  --color-rule: var(--rule);
+  --color-rule-soft: var(--rule-soft);
+  --color-char: var(--char);
+  --color-char-2: var(--char-2);
+  --color-char-3: var(--char-3);
+  --color-amber: var(--amber);
+  --color-amber-deep: var(--amber-deep);
+  --color-amber-wash: var(--amber-wash);
+  --color-go: var(--go);
+  --color-halt: var(--halt);
+
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --radius-sm: 1px;
+  --radius-md: 2px;
+}
+
+body {
+  background-color: var(--deck);
+  color: var(--char);
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/*
+ * Pano salonu: sabit, çok düşük opaklıkta gren. Panoya bakarken ekranın
+ * kendisi de biraz tozlu bir cam gibi dursun. Dekoratif, tıklamayı engellemez.
+ */
+.room::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
+}
+
+/* Panonun gövdesi: koyu panel, ince çerçeve, üstten hafif ışık alan bir yüzey. */
+@utility board-panel {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--board);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    0 1px 0 rgb(0 0 0 / 0.6);
+}
+
+/* Pano başlığı: panelin üstünde koyu bir bant. */
+@utility board-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--seam);
+  padding: 0.625rem 1rem;
+}
+
+/* Sütun başlığı satırı: mono, aralıklı, çok sönük. */
+@utility board-cols {
+  border-bottom: 1px solid var(--rule-soft);
+  background: rgb(0 0 0 / 0.25);
+  padding: 0.5rem 1rem;
+}
+
+@utility meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--char-3);
+}
+
+@utility numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Tek bir flap hücresi: koyu kart, ortasında menteşe çizgisi. Karakter
+ * değiştikçe üstten aşağı düşer; menteşe sabit kalır.
+ */
+@utility flap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--seam);
+  background: var(--cell);
+  color: var(--char);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  perspective: 240px;
+}
+
+@utility flap-hinge {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--seam);
+  opacity: 0.9;
+}
+
+/* Üst yaprak alttakinden bir tık açık; menteşe böylece gerçekten ikiye ayırıyor. */
+.flap::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 50% 0;
+  background: rgb(255 255 255 / 0.035);
+  pointer-events: none;
+}
+
+@keyframes flap-drop {
+  from {
+    transform: rotateX(-78deg);
+    opacity: 0.35;
+  }
+  to {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+@utility flap-char {
+  display: block;
+  transform-origin: center top;
+  animation: flap-drop 110ms cubic-bezier(0.3, 0.9, 0.4, 1);
+  backface-visibility: hidden;
+}
+
+/*
+ * Konsol tuşu: kalkış filtrelerini seçtiğin sert kenarlı düğme. Basılıyken
+ * kehribar yanar, hover'da sadece kenarı aydınlanır.
+ */
+@utility key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  background: var(--cell);
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--char-2);
+  transition:
+    border-color 140ms ease-out,
+    color 140ms ease-out,
+    background-color 140ms ease-out;
+}
+
+@utility key-on {
+  border-color: var(--amber-deep);
+  background: var(--amber-wash);
+  color: var(--amber);
+}
+
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-sm);
+  padding: 0.8125rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition:
+    background-color 140ms ease-out,
+    border-color 140ms ease-out,
+    color 140ms ease-out;
+}
+
+@utility btn-amber {
+  border: 1px solid var(--amber);
+  background: var(--amber);
+  color: #17130a;
+}
+
+@utility btn-solid {
+  border: 1px solid var(--char-2);
+  background: transparent;
+  color: var(--char);
+}
+
+@utility btn-quiet {
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--char-2);
+}
+
+@utility field {
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  background: var(--seam);
+  padding: 0.625rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--char);
+  outline: none;
+}
+
+.field::placeholder {
+  color: var(--char-3);
+}
+
+button:not(:disabled),
+a[href] {
+  cursor: pointer;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--amber);
+  color: #17130a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flap-char {
+    animation: none;
+  }
+}
