@@ -27,7 +27,7 @@ src/
   app/            # Next.js App Router sayfaları
   components/     # SplitFlap, SessionRunner, HistoryView, Nav, Mark, Glyph
   lib/
-    habits.ts     # aktivite katalogu (24 uğraş)
+    habits.ts     # aktivite katalogu (167 uğraş, 6 hat)
     icons.ts      # ikon kayıt defteri + v1 emoji göçü
     types.ts      # Habit, SessionLog, Profile
     storage.ts    # HabyteRepository arayüzü + localStorage implementasyonu
